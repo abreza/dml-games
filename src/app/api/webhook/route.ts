@@ -121,6 +121,7 @@ export async function POST(request: NextRequest) {
       const callbackQuery = body.callback_query;
       const data = callbackQuery.data;
       const gameShortName = callbackQuery.game_short_name;
+      const user = callbackQuery.from;
 
       let chatId: number | null = null;
 
@@ -136,6 +137,11 @@ export async function POST(request: NextRequest) {
       console.log(
         `Callback query received: data="${data}", game_short_name="${gameShortName}", inline_message_id="${callbackQuery.inline_message_id}"`
       );
+      console.log(
+        `User info: ${user.first_name} ${user.last_name || ""} (${
+          user.username || "no username"
+        })`
+      );
 
       if (data === "start_game" && chatId) {
         await sendGame(chatId);
@@ -143,8 +149,14 @@ export async function POST(request: NextRequest) {
       } else if (gameShortName) {
         console.log(`Game launch requested: ${gameShortName}`);
 
-        let gameUrl = `${WEBHOOK_URL}?user_id=${callbackQuery.from.id}&query_id=${callbackQuery.id}`;
-
+        let gameUrl = `${WEBHOOK_URL}?user_id=${user.id}&query_id=${callbackQuery.id}`;
+        gameUrl += `&first_name=${encodeURIComponent(user.first_name)}`;
+        if (user.last_name) {
+          gameUrl += `&last_name=${encodeURIComponent(user.last_name)}`;
+        }
+        if (user.username) {
+          gameUrl += `&username=${encodeURIComponent(user.username)}`;
+        }
         if (chatId) {
           gameUrl += `&chat_id=${chatId}`;
         }
@@ -163,6 +175,11 @@ export async function POST(request: NextRequest) {
 
         await answerCallbackQuery(callbackQuery.id, undefined, gameUrl);
         console.log(`Game URL sent: ${gameUrl}`);
+        console.log(
+          `User data included: ${user.first_name} ${
+            user.last_name || "(no last name)"
+          }`
+        );
       } else {
         await answerCallbackQuery(callbackQuery.id);
       }

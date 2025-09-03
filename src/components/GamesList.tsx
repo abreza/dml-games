@@ -162,7 +162,7 @@ export const GamesList: React.FC<GamesListProps> = ({ onGameSelect }) => {
   return (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-telegram-text mb-2">
+        <h2 className="text-2xl font-bold text-telegram-text mb-2 text-white">
           🎵 بازی‌های حدس آهنگ
         </h2>
         <p className="text-telegram-hint">بازی مورد نظر خود را انتخاب کنید</p>

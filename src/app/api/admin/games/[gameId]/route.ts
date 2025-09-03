@@ -5,7 +5,7 @@ import { getRedisClient } from "@/lib/redis";
 export async function PUT(request: NextRequest, { params }: any) {
   try {
     const redis = await getRedisClient();
-    const gameId = params.gameId;
+    const { gameId } = await params;
     const body = await request.json();
 
     const { songName, singerName, startTime, endTime, textHint, imageUrl } =
@@ -72,7 +72,7 @@ export async function PUT(request: NextRequest, { params }: any) {
 export async function DELETE(request: NextRequest, { params }: any) {
   try {
     const redis = await getRedisClient();
-    const gameId = params.gameId;
+    const { gameId } = await params;
 
     const existingGameData = await redis.get(`game:${gameId}`);
 
@@ -95,7 +95,7 @@ export async function DELETE(request: NextRequest, { params }: any) {
 export async function GET(request: NextRequest, { params }: any) {
   try {
     const redis = await getRedisClient();
-    const gameId = params.gameId;
+    const { gameId } = await params;
 
     const gameData = await redis.get(`game:${gameId}`);
 

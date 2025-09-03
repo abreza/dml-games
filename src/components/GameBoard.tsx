@@ -141,7 +141,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
       <div className="space-y-2">
         <div className="text-center">
-          <h3 className="text-lg font-semibold text-telegram-text mb-2">
+          <h3 className="text-lg font-semibold text-telegram-text mb-2 text-white">
             نام آهنگ
           </h3>
           {renderWord(
@@ -157,7 +157,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
       <div className="space-y-2">
         <div className="text-center">
-          <h3 className="text-lg font-semibold text-telegram-text mb-2">
+          <h3 className="text-lg font-semibold text-telegram-text mb-2 text-white">
             نام خواننده
           </h3>
           {renderWord(
