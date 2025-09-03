@@ -3,9 +3,9 @@ import { Metadata } from "next";
 import "../assets/globals.css";
 
 export const metadata: Metadata = {
-  title: "چالش کلیک سریع | بازی گروهی تلگرام",
-  description: "30 ثانیه فرصت، 100 کلیک هدف! با دوستات رقابت کن",
-  keywords: "بازی, تلگرام, رقابت, کلیک, گروهی",
+  title: "حدس آهنگ | بازی تلگرام",
+  description: "بازی حدس نام آهنگ و خواننده",
+  keywords: "بازی, تلگرام, آهنگ, حدس, موسیقی",
   authors: [{ name: "DML Games" }],
   creator: "DML Games",
   publisher: "DML Games",
@@ -16,16 +16,16 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL(process.env.WEBHOOK_URL || "https://localhost:3000"),
   openGraph: {
-    title: "چالش کلیک سریع",
-    description: "30 ثانیه فرصت، 100 کلیک هدف! با دوستات رقابت کن",
+    title: "بازی حدس آهنگ",
+    description: "بازی حدس نام آهنگ و خواننده",
     type: "website",
     locale: "fa_IR",
     siteName: "DML Games",
   },
   twitter: {
     card: "summary_large_image",
-    title: "چالش کلیک سریع",
-    description: "30 ثانیه فرصت، 100 کلیک هدف! با دوستات رقابت کن",
+    title: "بازی حدس آهنگ",
+    description: "بازی حدس نام آهنگ و خواننده",
   },
   robots: {
     index: false,
@@ -62,16 +62,16 @@ export default function RootLayout({
 
         <meta name="telegram:card" content="app" />
         <meta name="telegram:site" content="@dml_games_bot" />
-        <meta name="telegram:title" content="چالش کلیک سریع" />
+        <meta name="telegram:title" content="بازی حدس آهنگ" />
         <meta
           name="telegram:description"
-          content="30 ثانیه فرصت، 100 کلیک هدف! با دوستات رقابت کن"
+          content="بازی حدس نام آهنگ و خواننده"
         />
 
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="چالش کلیک سریع" />
+        <meta name="apple-mobile-web-app-title" content="بازی حدس آهنگ" />
 
         <meta name="theme-color" content="#3b82f6" />
         <meta name="msapplication-navbutton-color" content="#3b82f6" />
@@ -94,9 +94,8 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               window.addEventListener('load', function() {
-                console.log('🚀 Initializing Telegram WebApp...');
+                console.log('🚀 Initializing Telegram WebApp for Song Guessing Game...');
                 
-                // Wait for Telegram object to be available
                 let attempts = 0;
                 const maxAttempts = 10;
                 
@@ -113,20 +112,13 @@ export default function RootLayout({
                       initDataUnsafe: tg.initDataUnsafe
                     });
                     
-                    // Expand to full screen
                     tg.expand();
-                    
-                    // Enable closing confirmation
                     tg.enableClosingConfirmation();
-                    
-                    // Set header color to match theme
                     tg.setHeaderColor('#3b82f6');
                     tg.setBackgroundColor('#ffffff');
-                    
-                    // Ready signal
                     tg.ready();
                     
-                    console.log('✅ Telegram WebApp initialized:', {
+                    console.log('✅ Song Guessing Game initialized:', {
                       platform: tg.platform,
                       version: tg.version,
                       colorScheme: tg.colorScheme,
@@ -139,14 +131,12 @@ export default function RootLayout({
                       initDataLength: tg.initData ? tg.initData.length : 0
                     });
 
-                    // Apply dark theme if needed
                     if (tg.colorScheme === 'dark') {
                       document.documentElement.classList.add('dark');
                       tg.setHeaderColor('#1f2937');
                       tg.setBackgroundColor('#111827');
                     }
 
-                    // Handle theme changes
                     tg.onEvent('themeChanged', function() {
                       console.log('🎨 Theme changed to:', tg.colorScheme);
                       if (tg.colorScheme === 'dark') {
@@ -160,7 +150,6 @@ export default function RootLayout({
                       }
                     });
 
-                    // Handle viewport changes
                     tg.onEvent('viewportChanged', function() {
                       console.log('📱 Viewport changed:', {
                         height: tg.viewportHeight,
@@ -169,10 +158,9 @@ export default function RootLayout({
                       });
                     });
 
-                    // If initData is still empty, log warning
                     if (!tg.initData) {
-                      console.warn('⚠️ initData is empty. This might be due to:');
-                      console.warn('1. Bot not configured properly in BotFather');
+                      console.warn('⚠️ initData is empty. Possible issues:');
+                      console.warn('1. Bot not configured properly');
                       console.warn('2. Web App URL not set correctly');
                       console.warn('3. Domain not whitelisted');
                       console.warn('4. HTTPS issues');
@@ -188,7 +176,6 @@ export default function RootLayout({
                   }
                 }
                 
-                // Start initialization
                 initTelegram();
               });
             `,
@@ -209,7 +196,7 @@ export default function RootLayout({
                   setTimeout(function() {
                     const perfData = performance.getEntriesByType('navigation')[0];
                     if (perfData) {
-                      console.log('📊 Page load time:', Math.round(perfData.loadEventEnd - perfData.fetchStart) + 'ms');
+                      console.log('📊 Song Game load time:', Math.round(perfData.loadEventEnd - perfData.fetchStart) + 'ms');
                     }
                   }, 0);
                 });

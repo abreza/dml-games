@@ -1,28 +1,15 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { DebugInfo } from "../components/DebugInfo";
-import { WaitingScreen } from "../components/WaitingScreen";
-import { GameScreen } from "../components/GameScreen";
-import { FinishedScreen } from "../components/FinishedScreen";
+import React, { useState, useEffect, useRef } from "react";
+import { GameBoard } from "../components/GameBoard";
+import { GamesList } from "../components/GamesList";
+import { HintModal } from "../components/HintModal";
 import { Leaderboard } from "../components/Leaderboard";
+import { Game, GameSession } from "../types/game";
 
 interface TelegramWebApp {
   initData: string;
-  initDataUnsafe: {
-    user?: {
-      id: number;
-      first_name: string;
-      last_name?: string;
-      username?: string;
-    };
-    chat?: {
-      id: number;
-      title: string;
-      type: string;
-    };
-  };
+  initDataUnsafe: any;
   ready: () => void;
   expand: () => void;
   close: () => void;
@@ -37,13 +24,6 @@ interface TelegramWebApp {
     impactOccurred: (style: "light" | "medium" | "heavy") => void;
   };
   colorScheme: "light" | "dark";
-}
-
-interface Player {
-  userId: number;
-  userName: string;
-  score: number;
-  position?: number;
 }
 
 interface GameParams {
@@ -63,24 +43,30 @@ declare global {
   }
 }
 
-const GAME_DURATION = 30;
-const TARGET_CLICKS = 100;
-
-const Game = () => {
+const MainPage = () => {
   const [gameState, setGameState] = useState<
-    "waiting" | "playing" | "finished"
-  >("waiting");
-  const [clicks, setClicks] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
-  const [score, setScore] = useState(0);
-  const [players, setPlayers] = useState<Player[]>([]);
+    "selecting" | "playing" | "loading"
+  >("selecting");
+  const [currentGame, setCurrentGame] = useState<Game | null>(null);
+  const [currentSession, setCurrentSession] = useState<GameSession | null>(
+    null
+  );
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [gameParams, setGameParams] = useState<GameParams>({});
-  const [isInlineGame, setIsInlineGame] = useState(false);
-  const [isScoreSaving, setIsScoreSaving] = useState(false);
+  const [hintModal, setHintModal] = useState<{
+    isOpen: boolean;
+    type: "text" | "image";
+    content: string;
+  }>({
+    isOpen: false,
+    type: "text",
+    content: "",
+  });
+  const [players, setPlayers] = useState<any[]>([]);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const gameStartTimeRef = useRef<number | null>(null);
   const tg = typeof window !== "undefined" ? window.Telegram?.WebApp : null;
 
   useEffect(() => {
@@ -95,126 +81,235 @@ const Game = () => {
     };
 
     setGameParams(params);
-    setIsInlineGame(!!params.inline_message_id);
-
-    console.log("🎮 Game URL params:", params);
-    console.log("🔍 Current URL:", window.location.href);
 
     if (tg) {
-      console.log("📱 Telegram WebApp object:", {
-        initData: tg.initData,
-        initDataUnsafe: tg.initDataUnsafe,
-      });
-
       setTimeout(() => {
         tg.ready();
         tg.expand();
-
-        const userData = tg.initDataUnsafe?.user;
-        const chatData = tg.initDataUnsafe?.chat;
-
-        console.log("👤 User data from Telegram:", userData);
-        console.log("💬 Chat data from Telegram:", chatData);
-
-        let finalUser = userData;
-        let finalChat = chatData;
-
-        if (!finalUser && params.user_id) {
-          console.log("⚠️ No user data from Telegram, using URL params");
-          finalUser = {
-            id: parseInt(params.user_id),
-            first_name: "Player",
-          };
-        }
-
-        if (!finalChat && params.chat_id) {
-          console.log("⚠️ No chat data from Telegram, using URL params");
-          finalChat = {
-            id: parseInt(params.chat_id),
-            title: "Game Chat",
-            type: "group",
-          };
-        }
-
-        setUser(finalUser);
-
-        console.log("✅ Final game state:", {
-          user: finalUser,
-          chat: finalChat,
-          isInline: !!params.inline_message_id,
-          params,
-        });
       }, 500);
-    } else {
-      console.log("❌ Telegram WebApp not available");
-
-      if (params.user_id) {
-        setUser({
-          id: parseInt(params.user_id),
-          first_name: "Player",
-        });
-      }
+    }
+    if (params.user_id) {
+      setUser({
+        id: parseInt(params.user_id),
+      });
     }
   }, [tg]);
 
   useEffect(() => {
-    if (
-      user?.id &&
-      (gameParams.inline_message_id ||
-        (gameParams.chat_id && gameParams.message_id))
-    ) {
-      loadGameScores();
+    if (currentSession && currentGame) {
+      startTimer();
     }
-  }, [user, gameParams]);
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [currentSession, currentGame]);
 
-  const loadGameScores = async () => {
+  const startTimer = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
+    const updateTimer = () => {
+      if (!currentGame) return;
+
+      const now = new Date();
+      const endTime = new Date(currentGame.endTime);
+      const remaining = Math.max(
+        0,
+        Math.floor((endTime.getTime() - now.getTime()) / 1000)
+      );
+
+      setTimeLeft(remaining);
+
+      if (remaining <= 0 && currentSession && !currentSession.isCompleted) {
+        handleGameEnd();
+      }
+    };
+
+    updateTimer();
+    timerRef.current = setInterval(updateTimer, 1000);
+  };
+
+  const handleGameSelect = async (gameId: string) => {
     if (!user?.id) {
-      console.log("No user ID available for loading scores");
+      alert("خطا: اطلاعات کاربر موجود نیست");
       return;
     }
 
+    setIsLoading(true);
+    setGameState("loading");
+
     try {
-      console.log("Loading game scores...");
+      const response = await fetch("/api/games", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          gameId,
+          userId: user.id,
+          userName: `${user.first_name}${
+            user.last_name ? ` ${user.last_name}` : ""
+          }`,
+        }),
+      });
 
-      let url = `/api/scores?userId=${user.id}`;
-
-      if (gameParams.inline_message_id) {
-        url += `&inlineMessageId=${encodeURIComponent(
-          gameParams.inline_message_id
-        )}`;
-      } else if (gameParams.chat_id && gameParams.message_id) {
-        url += `&chatId=${gameParams.chat_id}&messageId=${gameParams.message_id}`;
-      } else {
-        console.log("Missing game identification parameters");
-        return;
-      }
-
-      const response = await fetch(url);
       const data = await response.json();
 
-      if (data.success && data.scores) {
-        setPlayers(data.scores);
-        console.log(`Loaded ${data.scores.length} scores from Telegram`);
+      if (data.success) {
+        setCurrentGame(data.game);
+        setCurrentSession(data.session);
+        setGameState("playing");
+
+        if (tg?.HapticFeedback) {
+          tg.HapticFeedback.impactOccurred("medium");
+        }
       } else {
-        console.log("No scores found or API error:", data);
+        alert(data.error || "خطا در شروع بازی");
+        setGameState("selecting");
       }
     } catch (error) {
-      console.error("Failed to load scores:", error);
+      console.error("Error starting game:", error);
+      alert("خطا در ارتباط با سرور");
+      setGameState("selecting");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const saveScore = async (playerScore: number) => {
-    if (!user?.id) {
-      console.log("No user data available for saving score");
-      return;
-    }
+  const handleGuessLetter = async (letter: string) => {
+    if (!currentSession || !currentGame || isLoading) return;
 
-    if (isScoreSaving) {
-      console.log("Score save already in progress...");
-      return;
-    }
+    setIsLoading(true);
 
-    setIsScoreSaving(true);
+    try {
+      const response = await fetch(
+        `/api/games/${currentGame.id}/session/${currentSession.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            action: "guess_letter",
+            letter,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setCurrentSession(data.session);
+
+        if (tg?.HapticFeedback) {
+          tg.HapticFeedback.impactOccurred(data.isCorrect ? "light" : "medium");
+        }
+
+        if (data.session.isCompleted) {
+          await saveScore(data.session.score);
+        }
+      } else {
+        alert(data.error || "خطا در حدس زدن");
+      }
+    } catch (error) {
+      console.error("Error guessing letter:", error);
+      alert("خطا در ارتباط با سرور");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUseTextHint = async () => {
+    if (!currentSession || !currentGame || isLoading) return;
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(
+        `/api/games/${currentGame.id}/session/${currentSession.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            action: "use_text_hint",
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setCurrentSession(data.session);
+        setHintModal({
+          isOpen: true,
+          type: "text",
+          content: data.textHint,
+        });
+
+        if (tg?.HapticFeedback) {
+          tg.HapticFeedback.impactOccurred("medium");
+        }
+      } else {
+        alert(data.error || "خطا در دریافت راهنمایی");
+      }
+    } catch (error) {
+      console.error("Error using text hint:", error);
+      alert("خطا در ارتباط با سرور");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUseImageHint = async () => {
+    if (!currentSession || !currentGame || isLoading) return;
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(
+        `/api/games/${currentGame.id}/session/${currentSession.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            action: "use_image_hint",
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setCurrentSession(data.session);
+        setHintModal({
+          isOpen: true,
+          type: "image",
+          content: data.imageUrl,
+        });
+
+        if (tg?.HapticFeedback) {
+          tg.HapticFeedback.impactOccurred("medium");
+        }
+      } else {
+        alert(data.error || "خطا در دریافت راهنمایی");
+      }
+    } catch (error) {
+      console.error("Error using image hint:", error);
+      alert("خطا در ارتباط با سرور");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const saveScore = async (score: number) => {
+    if (!user?.id || !currentGame || !currentSession) return;
 
     try {
       const userName = `${user.first_name}${
@@ -224,29 +319,16 @@ const Game = () => {
       const requestBody: any = {
         userId: user.id,
         userName: userName,
-        score: playerScore,
-        clicks: clicks,
+        score: score,
+        clicks: 0,
       };
 
       if (gameParams.inline_message_id) {
         requestBody.inlineMessageId = gameParams.inline_message_id;
-        console.log(
-          "Saving score for inline game:",
-          gameParams.inline_message_id
-        );
       } else if (gameParams.chat_id && gameParams.message_id) {
         requestBody.chatId = parseInt(gameParams.chat_id);
         requestBody.messageId = parseInt(gameParams.message_id);
-        console.log(
-          `Saving score for chat game: ${gameParams.chat_id}/${gameParams.message_id}`
-        );
-      } else {
-        console.error("Missing game identification for score saving");
-        setIsScoreSaving(false);
-        return;
       }
-
-      console.log("Submitting score to Telegram:", requestBody);
 
       const response = await fetch("/api/scores", {
         method: "POST",
@@ -260,134 +342,105 @@ const Game = () => {
 
       if (data.success && data.scores) {
         setPlayers(data.scores);
-        console.log("Score saved successfully to Telegram");
-
-        if (tg?.HapticFeedback) {
-          tg.HapticFeedback.impactOccurred("medium");
-        }
-      } else {
-        console.error("Failed to save score:", data);
-        alert("خطا در ذخیره امتیاز. دوباره تلاش کنید.");
+        console.log("Score saved successfully");
       }
     } catch (error) {
       console.error("Error saving score:", error);
-      alert("خطا در ذخیره امتیاز. دوباره تلاش کنید.");
-    } finally {
-      setIsScoreSaving(false);
     }
   };
 
-  const startGame = useCallback(() => {
-    setGameState("playing");
-    setClicks(0);
-    setTimeLeft(GAME_DURATION);
-    setScore(0);
-    gameStartTimeRef.current = Date.now();
-
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          endGame();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    if (tg?.HapticFeedback) {
-      tg.HapticFeedback.impactOccurred("light");
+  const handleGameEnd = () => {
+    if (currentSession && !currentSession.isCompleted) {
+      setCurrentSession((prev) =>
+        prev
+          ? {
+              ...prev,
+              isCompleted: true,
+              completedAt: new Date(),
+            }
+          : null
+      );
     }
-  }, [tg]);
 
-  const endGame = useCallback(() => {
-    setGameState("finished");
     if (timerRef.current) {
       clearInterval(timerRef.current);
-      timerRef.current = null;
     }
-  }, []);
+  };
 
-  const handleClick = useCallback(() => {
-    if (gameState !== "playing") return;
+  const handleBackToGames = () => {
+    setGameState("selecting");
+    setCurrentGame(null);
+    setCurrentSession(null);
+    setTimeLeft(0);
 
-    const newClickCount = clicks + 1;
-    setClicks(newClickCount);
-
-    if (tg?.HapticFeedback) {
-      tg.HapticFeedback.impactOccurred("light");
-    }
-
-    if (newClickCount >= TARGET_CLICKS) {
-      const elapsedTime = gameStartTimeRef.current
-        ? (Date.now() - gameStartTimeRef.current) / 1000
-        : GAME_DURATION;
-      const remainingTime = Math.max(0, GAME_DURATION - elapsedTime);
-      const finalScore = Math.floor(remainingTime);
-
-      setScore(finalScore);
-      saveScore(finalScore);
-      endGame();
-    }
-  }, [gameState, clicks, tg, endGame]);
-
-  const resetGame = () => {
-    setGameState("waiting");
-    setClicks(0);
-    setTimeLeft(GAME_DURATION);
-    setScore(0);
     if (timerRef.current) {
       clearInterval(timerRef.current);
-      timerRef.current = null;
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-4">
-      <DebugInfo tg={tg} user={user} gameParams={gameParams} />
       <div className="max-w-md mx-auto">
         <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl">
-          {gameState === "waiting" && (
-            <WaitingScreen
-              isInlineGame={isInlineGame}
-              onStart={startGame}
-              gameDuration={GAME_DURATION}
-              targetClicks={TARGET_CLICKS}
-            />
-          )}
-          {gameState === "playing" && (
-            <GameScreen
-              timeLeft={timeLeft}
-              clicks={clicks}
-              targetClicks={TARGET_CLICKS}
-              onClick={handleClick}
-            />
-          )}
-          {gameState === "finished" && (
-            <FinishedScreen
-              clicks={clicks}
-              targetClicks={TARGET_CLICKS}
-              score={score}
-              onReset={resetGame}
-            />
+          {gameState === "loading" && (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-telegram-hint">در حال بارگذاری...</p>
+            </div>
           )}
 
-          {isScoreSaving && (
-            <div className="mt-4 text-center">
-              <div className="text-blue-600 text-sm">
-                🏆 در حال ذخیره امتیاز در تلگرام...
+          {gameState === "selecting" && (
+            <GamesList onGameSelect={handleGameSelect} />
+          )}
+
+          {gameState === "playing" && currentGame && currentSession && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <button
+                  onClick={handleBackToGames}
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  ← بازگشت به لیست
+                </button>
+
+                {timeLeft <= 60 && timeLeft > 0 && (
+                  <div className="text-red-600 font-bold text-sm animate-pulse">
+                    ⏰ {Math.floor(timeLeft / 60)}:
+                    {(timeLeft % 60).toString().padStart(2, "0")}
+                  </div>
+                )}
               </div>
+
+              <GameBoard
+                game={currentGame}
+                session={currentSession}
+                timeLeft={timeLeft}
+                onGuessLetter={handleGuessLetter}
+                onUseTextHint={handleUseTextHint}
+                onUseImageHint={handleUseImageHint}
+                isLoading={isLoading}
+              />
             </div>
           )}
         </div>
 
-        <Leaderboard
-          players={players}
-          currentUserId={user?.id}
-          isInlineGame={isInlineGame}
-        />
+        {players.length > 0 && (
+          <Leaderboard
+            players={players}
+            currentUserId={user?.id}
+            isInlineGame={!!gameParams.inline_message_id}
+          />
+        )}
       </div>
+
+      <HintModal
+        isOpen={hintModal.isOpen}
+        type={hintModal.type}
+        content={hintModal.content}
+        onClose={() => setHintModal({ ...hintModal, isOpen: false })}
+      />
     </div>
   );
 };
 
-export default Game;
+export default MainPage;
