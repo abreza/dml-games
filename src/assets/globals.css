@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom fonts */
+.font-vazir {
+  font-family: "Vazirmatn", sans-serif;
+}
+
+/* Telegram Web App specific styles */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--tg-theme-bg-color, #ffffff);
+  color: var(--tg-theme-text-color, #000000);
+  font-family: "Vazirmatn", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif;
+}
+
+/* Ensure proper RTL support */
+[dir="rtl"] {
+  text-align: right;
+}
+
+/* Custom Telegram theme variables */
+:root {
+  --tg-theme-bg-color: #ffffff;
+  --tg-theme-text-color: #000000;
+  --tg-theme-hint-color: #999999;
+  --tg-theme-link-color: #2481cc;
+  --tg-theme-button-color: #2481cc;
+  --tg-theme-button-text-color: #ffffff;
+}
+
+/* Dark theme */
+.dark {
+  --tg-theme-bg-color: #17212b;
+  --tg-theme-text-color: #ffffff;
+  --tg-theme-hint-color: #708499;
+  --tg-theme-link-color: #6ab3f3;
+  --tg-theme-button-color: #5288c1;
+  --tg-theme-button-text-color: #ffffff;
+}
+
+/* Touch improvements */
+button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
