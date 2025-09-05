@@ -43,21 +43,25 @@ export async function GET() {
       .map((data) => JSON.parse(data));
 
     const now = new Date();
-    const visibleGames = games.filter((game) => {
+
+    const processedGames = games.map((game) => {
       const endTime = new Date(game.endTime);
-      const oneHourAfterEnd = new Date(endTime.getTime() + 60 * 60 * 1000);
-      return now < oneHourAfterEnd;
+      const isFinished = now > endTime;
+
+      if (isFinished) {
+        return game;
+      } else {
+        return sanitizeGameForPublic(game);
+      }
     });
 
-    const sanitizedGames = visibleGames.map(sanitizeGameForPublic);
-
-    sanitizedGames.sort((a, b) => {
+    processedGames.sort((a, b) => {
       const aStart = new Date(a.startTime);
       const bStart = new Date(b.startTime);
-      return aStart.getTime() - bStart.getTime();
+      return bStart.getTime() - aStart.getTime();
     });
 
-    return NextResponse.json({ success: true, games: sanitizedGames });
+    return NextResponse.json({ success: true, games: processedGames });
   } catch (error) {
     console.error("Error fetching games:", error);
     return NextResponse.json(

@@ -28,12 +28,6 @@ export interface GameSession {
   isCompleted: boolean;
 }
 
-export interface Letter {
-  char: string;
-  isGuessed: boolean;
-  isCorrect?: boolean;
-}
-
 export const PERSIAN_LETTERS = [
   "آ",
   "ا",

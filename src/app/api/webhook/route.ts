@@ -127,22 +127,9 @@ export async function POST(request: NextRequest) {
 
       if (callbackQuery.message?.chat?.id) {
         chatId = callbackQuery.message.chat.id;
-        console.log(`Regular callback query from chat ${chatId}`);
-      } else if (callbackQuery.inline_message_id) {
-        console.log(
-          `Inline callback query: ${callbackQuery.inline_message_id}`
-        );
       }
 
-      console.log(
-        `Callback query received: data="${data}", game_short_name="${gameShortName}", inline_message_id="${callbackQuery.inline_message_id}"`
-      );
-      console.log(
-        `User info: ${user.first_name} ${user.last_name || ""} (${
-          user.username || "no username"
-        })`
-      );
-
+      // Kept your original flow for the 'start_game' button
       if (data === "start_game" && chatId) {
         await sendGame(chatId);
         await answerCallbackQuery(callbackQuery.id, "بازی ارسال شد! 🎮");
@@ -160,13 +147,11 @@ export async function POST(request: NextRequest) {
         if (chatId) {
           gameUrl += `&chat_id=${chatId}`;
         }
-
         if (callbackQuery.inline_message_id) {
           gameUrl += `&inline_message_id=${encodeURIComponent(
             callbackQuery.inline_message_id
           )}`;
         }
-
         if (callbackQuery.chat_instance) {
           gameUrl += `&chat_instance=${encodeURIComponent(
             callbackQuery.chat_instance
@@ -175,11 +160,6 @@ export async function POST(request: NextRequest) {
 
         await answerCallbackQuery(callbackQuery.id, undefined, gameUrl);
         console.log(`Game URL sent: ${gameUrl}`);
-        console.log(
-          `User data included: ${user.first_name} ${
-            user.last_name || "(no last name)"
-          }`
-        );
       } else {
         await answerCallbackQuery(callbackQuery.id);
       }
@@ -195,23 +175,18 @@ export async function POST(request: NextRequest) {
       console.log(`Message received: "${text}" from chat ${chatId}`);
 
       if (text.startsWith("/start")) {
-        const welcomeText = `🎯 سلام! به بازی چالش کلیک سریع خوش اومدی!
+        const welcomeText = `<b>🎵 سلام! به بازی حدس آهنگ خوش اومدی!</b>
 
-🎮 این بازی چطور کار می‌کنه:
-• 30 ثانیه زمان داری
-• باید 100 بار کلیک کنی
-• اگر زودتر تموم کنی، زمان باقیمونده امتیاز توه!
+🎯 در این بازی، باید نام خواننده و آهنگ رو حدس بزنی.
 
-👥 این بازی در گروه‌ها بهتر کار می‌کنه. منو به یه گروه اضافه کن و با دوستات رقابت کن!
-
-برای شروع بازی از دکمه زیر استفاده کن:`;
+برای شروع و مشاهده لیست بازی‌های فعال، از دکمه زیر استفاده کن. می‌تونی این بازی رو به گروه‌هات هم اضافه کنی و با دوستات رقابت کنی!`;
 
         const keyboard = {
           inline_keyboard: [
             [
               {
-                text: "🎮 شروع بازی",
-                callback_data: "start_game",
+                text: "🎮 نمایش لیست بازی‌ها",
+                web_app: { url: WEBHOOK_URL! },
               },
             ],
           ],
@@ -221,26 +196,37 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
-      if (text.startsWith("/game")) {
-        await sendGame(chatId);
+      if (text.startsWith("/games")) {
+        const gamesText = `برای مشاهده و انتخاب بازی، لطفا روی دکمه زیر کلیک کن.`;
+        const keyboard = {
+          inline_keyboard: [
+            [
+              {
+                text: "🎮 باز کردن لیست بازی‌ها",
+                web_app: { url: WEBHOOK_URL! },
+              },
+            ],
+          ],
+        };
+        await sendMessage(chatId, gamesText, keyboard);
         return NextResponse.json({ ok: true });
       }
 
       if (text.startsWith("/help")) {
-        const helpText = `🆘 راهنمای بازی چالش کلیک سریع:
+        const helpText = `<b>🆘 راهنمای بازی حدس آهنگ</b>
 
-🎯 هدف بازی:
-در 30 ثانیه باید 100 بار روی دکمه کلیک کنی
+<b>🎯 هدف بازی:</b>
+حدس زدن کامل نام آهنگ و نام خواننده با انتخاب حروف صحیح.
 
-🏆 نحوه امتیازدهی:
-اگر زودتر از 30 ثانیه به 100 کلیک برسی، زمان باقیمونده (به ثانیه) امتیاز توه
+<b>🏆 نحوه امتیازدهی:</b>
+- هر بازی رو با <b>1000 امتیاز</b> شروع می‌کنی.
+- هر حرف اشتباه <b>20 امتیاز</b> کم می‌کنه.
+- استفاده از راهنمایی متنی <b>30 امتیاز</b> و راهنمایی تصویری <b>100 امتیاز</b> کم می‌کنه.
+- با حدس کامل نام آهنگ یا خواننده، <b>100 امتیاز</b> جایزه می‌گیری.
 
-📊 رتبه‌بندی:
-در گروه‌ها می‌تونی رتبه‌ات رو با بقیه مقایسه کنی
-
-🎮 دستورات:
+<b>🎮 دستورات:</b>
 /start - شروع و معرفی بات
-/game - ارسال بازی
+/games - نمایش لیست بازی‌های فعال
 /help - نمایش این راهنما`;
 
         await sendMessage(chatId, helpText);

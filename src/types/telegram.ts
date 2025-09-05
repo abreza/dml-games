@@ -4,13 +4,6 @@ export interface TelegramWebApp {
   ready: () => void;
   expand: () => void;
   close: () => void;
-  MainButton: {
-    setText: (text: string) => void;
-    show: () => void;
-    hide: () => void;
-    onClick: (callback: () => void) => void;
-    offClick: (callback: () => void) => void;
-  };
   HapticFeedback: {
     impactOccurred: (style: "light" | "medium" | "heavy") => void;
   };

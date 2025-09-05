@@ -21,8 +21,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   onUseImageHint,
   isLoading,
 }) => {
-  const [selectedLetter, setSelectedLetter] = useState<string>("");
-
   const normalizeText = (text: string): string => {
     return text
       .trim()
@@ -141,7 +139,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
       <div className="space-y-2">
         <div className="text-center">
-          <h3 className="text-lg font-semibold text-telegram-text mb-2 text-white">
+          <h3 className="text-lg font-semibold text-telegram-text mb-2">
             نام آهنگ
           </h3>
           {renderWord(
@@ -157,7 +155,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
       <div className="space-y-2">
         <div className="text-center">
-          <h3 className="text-lg font-semibold text-telegram-text mb-2 text-white">
+          <h3 className="text-lg font-semibold text-telegram-text mb-2">
             نام خواننده
           </h3>
           {renderWord(

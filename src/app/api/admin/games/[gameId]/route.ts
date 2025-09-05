@@ -80,6 +80,7 @@ export async function DELETE(request: NextRequest, { params }: any) {
       return NextResponse.json({ error: "بازی یافت نشد" }, { status: 404 });
     }
 
+    await redis.del(`game:${gameId}`);
     await redis.sRem("games:ids", gameId);
 
     return NextResponse.json({
@@ -89,28 +90,5 @@ export async function DELETE(request: NextRequest, { params }: any) {
   } catch (error) {
     console.error("Error deleting game:", error);
     return NextResponse.json({ error: "خطا در حذف بازی" }, { status: 500 });
-  }
-}
-
-export async function GET(request: NextRequest, { params }: any) {
-  try {
-    const redis = await getRedisClient();
-    const { gameId } = await params;
-
-    const gameData = await redis.get(`game:${gameId}`);
-
-    if (!gameData) {
-      return NextResponse.json({ error: "بازی یافت نشد" }, { status: 404 });
-    }
-
-    const game: Game = JSON.parse(gameData);
-
-    return NextResponse.json({
-      success: true,
-      game,
-    });
-  } catch (error) {
-    console.error("Error fetching game:", error);
-    return NextResponse.json({ error: "خطا در دریافت بازی" }, { status: 500 });
   }
 }

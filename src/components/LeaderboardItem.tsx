@@ -72,7 +72,7 @@ export const LeaderboardItem: React.FC<LeaderboardItemProps> = ({
         </span>
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-telegram-text text-white">
+            <span className="font-medium text-telegram-text">
               {player.userName}
               {isCurrentUser && " (شما)"}
             </span>

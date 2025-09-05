@@ -27,9 +27,29 @@ const apiCall = async <T>(url: string, options?: RequestInit): Promise<T> => {
   return data;
 };
 
-export const fetchActiveGames = async (): Promise<Game[]> => {
-  const data = await apiCall<GameListResponse>("/api/games");
-  return data.games || [];
+export const fetchGameData = async (gameId: string): Promise<Game> => {
+  const response = await fetch(`/api/games/${gameId}`);
+  const data = await response.json();
+
+  if (!data.success) {
+    throw new Error(data.error || "Game not found");
+  }
+
+  return data.game;
+};
+
+export const fetchUserSession = async (
+  gameId: string,
+  userId: number
+): Promise<GameSession | null> => {
+  const response = await fetch(`/api/games/${gameId}/session?userId=${userId}`);
+  const data = await response.json();
+
+  if (!response.ok || !data.success) {
+    return null;
+  }
+
+  return data.session;
 };
 
 export const startGame = async (

@@ -5,9 +5,19 @@ export const useTelegramWebApp = () => {
   const [user, setUser] = useState<TelegramUser | null>(null);
   const [gameParams, setGameParams] = useState<GameParams>({});
   const [isReady, setIsReady] = useState(false);
+  const [colorScheme, setColorScheme] = useState<"light" | "dark">("light");
 
   useEffect(() => {
     const tg = typeof window !== "undefined" ? window.Telegram?.WebApp : null;
+
+    const applyColorScheme = (scheme: "light" | "dark") => {
+      setColorScheme(scheme);
+      if (scheme === "dark") {
+        document.body.classList.add("dark");
+      } else {
+        document.body.classList.remove("dark");
+      }
+    };
 
     const urlParams = new URLSearchParams(window.location.search);
     const params: GameParams = {
@@ -21,15 +31,13 @@ export const useTelegramWebApp = () => {
 
     setGameParams(params);
 
-    if (tg) {
-      setTimeout(() => {
-        tg.ready();
-        tg.expand();
-        setIsReady(true);
-      }, 500);
-    } else {
-      setIsReady(true);
+    if (typeof window !== "undefined") {
+      const prefersDark =
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
+      applyColorScheme(prefersDark ? "dark" : "light");
     }
+    setIsReady(true);
 
     if (params.user_id) {
       const firstName = urlParams.get("first_name");
@@ -79,10 +87,17 @@ export const useTelegramWebApp = () => {
     }
   };
 
+  const getCurrentQueryParams = (): string => {
+    if (typeof window === "undefined") return "";
+    return window.location.search;
+  };
+
   return {
     user,
     gameParams,
     isReady,
+    colorScheme,
     triggerHapticFeedback,
+    getCurrentQueryParams,
   };
 };

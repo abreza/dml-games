@@ -27,7 +27,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
     <div className="mt-8 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl">
       <div className="flex items-center justify-center gap-2 mb-4">
         <Trophy className="w-5 h-5 text-telegram-hint" />
-        <h3 className="text-lg font-bold text-telegram-text text-white">
+        <h3 className="text-lg font-bold text-telegram-text">
           رتبه بندی این بازی
         </h3>
       </div>
