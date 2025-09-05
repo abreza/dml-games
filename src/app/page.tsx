@@ -1,17 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Play, Trophy, Clock, Eye, History, Music } from "lucide-react";
+import { Play, Trophy, Clock, Eye, History } from "lucide-react";
 import { Game, GameStatus } from "../types/game";
-import { fetchGameLeaderboard } from "../services/gameService";
+import { fetchGames } from "../services/gameService";
 import { useTelegramWebApp } from "../hooks/useTelegramWebApp";
 import { preserveQueryParams } from "../utils/navigationUtils";
 
 interface GameWithCompletion extends Game {
   isCompletedByUser?: boolean;
   userScore?: number;
-  userPosition?: number;
 }
 
 const GamesListPage = () => {
@@ -22,66 +21,29 @@ const GamesListPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchActiveGames = async () => {
-    try {
+  const fetchActiveGames = useCallback(async () => {
+    if (!games.length) {
       setLoading(true);
-      setError(null);
-
-      const response = await fetch("/api/games");
-      const data = await response.json();
-
-      if (data.success) {
-        const fetchedGames: Game[] = data.games || [];
-
-        if (user?.id) {
-          const completionPromises = fetchedGames.map(async (game) => {
-            try {
-              const leaderboard = await fetchGameLeaderboard(game.id);
-              const userEntry = leaderboard.find(
-                (player) => player.userId === user.id
-              );
-
-              return {
-                ...game,
-                isCompletedByUser: userEntry?.isCompleted || false,
-                userScore: userEntry?.score,
-                userPosition: userEntry?.position,
-              };
-            } catch (error) {
-              console.error(
-                `Error fetching leaderboard for game ${game.id}:`,
-                error
-              );
-              return {
-                ...game,
-                isCompletedByUser: false,
-              };
-            }
-          });
-
-          const gamesWithCompletion = await Promise.all(completionPromises);
-          setGames(gamesWithCompletion);
-        } else {
-          setGames(
-            fetchedGames.map((game) => ({ ...game, isCompletedByUser: false }))
-          );
-        }
-      } else {
-        setError("خطا در دریافت بازی‌ها");
-      }
-    } catch (error) {
-      console.error("Error fetching games:", error);
-      setError("خطا در ارتباط با سرور");
+    }
+    setError(null);
+    try {
+      const fetchedGames = await fetchGames(user?.id);
+      setGames(fetchedGames);
+    } catch (err) {
+      console.error("Error fetching games:", err);
+      setError(err instanceof Error ? err.message : "خطا در ارتباط با سرور");
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, games.length]);
 
   useEffect(() => {
-    fetchActiveGames();
+    if (user) {
+      fetchActiveGames();
+    }
     const interval = setInterval(fetchActiveGames, 30000);
     return () => clearInterval(interval);
-  }, [user?.id]);
+  }, [user, fetchActiveGames]);
 
   const getGameStatus = (game: Game) => {
     const now = new Date();
@@ -124,7 +86,7 @@ const GamesListPage = () => {
     };
   };
 
-  const formatTime = (date: Date) => {
+  const formatTime = (date: Date | string) => {
     return new Date(date).toLocaleDateString("fa-IR", {
       month: "short",
       day: "numeric",
@@ -136,14 +98,13 @@ const GamesListPage = () => {
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
-
     if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, "0")}:${remainingSeconds
-        .toString()
-        .padStart(2, "0")}`;
+      return `${hours} ساعت و ${minutes} دقیقه`;
     }
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+    if (minutes > 0) {
+      return `${minutes} دقیقه`;
+    }
+    return `کمتر از یک دقیقه`;
   };
 
   const getButtonConfig = (game: GameWithCompletion, gameStatus: any) => {
@@ -185,8 +146,8 @@ const GamesListPage = () => {
     if (gameStatus.status === GameStatus.UPCOMING) {
       return {
         text: "منتظر شروع",
-        icon: <Play className="w-4 h-4" />,
-        className: "bg-blue-100 text-blue-700 hover:bg-blue-200",
+        icon: <Clock className="w-4 h-4" />,
+        className: "bg-blue-100 text-blue-700",
         canClick: false,
         showUserStats: false,
         action: "wait",
@@ -219,31 +180,20 @@ const GamesListPage = () => {
 
     switch (buttonConfig.action) {
       case "play_game":
-        const playUrl = preserveQueryParams(`/game/${game.id}`);
-        router.push(playUrl);
+        router.push(preserveQueryParams(`/game/${game.id}`));
         break;
       case "view_results":
-        const resultsUrl = preserveQueryParams(`/game/${game.id}/results`);
-        router.push(resultsUrl);
+        router.push(preserveQueryParams(`/game/${game.id}/results`));
         break;
-      default:
-        const defaultUrl = preserveQueryParams(`/game/${game.id}`);
-        router.push(defaultUrl);
     }
   };
 
-  const activeAndUpcomingGames = games.filter((game) => {
-    const status = getGameStatus(game);
-    return (
-      status.status === GameStatus.ACTIVE ||
-      status.status === GameStatus.UPCOMING
-    );
-  });
-
-  const finishedGames = games.filter((game) => {
-    const status = getGameStatus(game);
-    return status.status === GameStatus.ENDED;
-  });
+  const activeAndUpcomingGames = games.filter(
+    (game) => getGameStatus(game).status !== GameStatus.ENDED
+  );
+  const finishedGames = games.filter(
+    (game) => getGameStatus(game).status === GameStatus.ENDED
+  );
 
   const renderGameCard = (game: GameWithCompletion) => {
     const gameStatus = getGameStatus(game);
@@ -254,57 +204,35 @@ const GamesListPage = () => {
     return (
       <div
         key={game.id}
-        className={`
-          bg-white dark:bg-gray-800 rounded-xl p-4 border-2 transition-all
-          ${
-            game.isCompletedByUser
-              ? "border-purple-300 shadow-lg bg-purple-50 dark:bg-purple-900/20"
-              : gameStatus.isActive
-              ? "border-green-300 shadow-lg"
-              : gameStatus.status === GameStatus.UPCOMING
-              ? "border-blue-300 shadow-sm"
-              : "border-gray-200 shadow-sm"
-          }
-        `}
+        className={`bg-white dark:bg-gray-800 rounded-xl p-4 border transition-all shadow-sm ${
+          game.isCompletedByUser
+            ? "border-purple-300 bg-purple-50 dark:bg-purple-900/20"
+            : gameStatus.isActive
+            ? "border-green-300"
+            : "border-gray-200 dark:border-gray-700"
+        }`}
       >
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex-1">
-            <div className="text-telegram-hint text-sm">
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                <span>{gameStatus.timeText}</span>
-              </div>
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1 pr-4">
+            <div className="text-telegram-hint text-sm flex items-center gap-1 mb-2">
+              <Clock className="w-4 h-4" />
+              <span>{gameStatus.timeText}</span>
             </div>
-
+            {isFinished && hasGameData ? (
+              <div className="space-y-1">
+                <div className="font-medium text-green-700 dark:text-green-300">
+                  {game.songName}
+                </div>
+                <div className="text-sm text-blue-700 dark:text-blue-300">
+                  {game.singerName}
+                </div>
+              </div>
+            ) : (
+              <div className="font-semibold text-lg">بازی حدس آهنگ</div>
+            )}
             {buttonConfig.showUserStats && game.userScore !== undefined && (
-              <div className="mt-2 text-sm">
-                <div className="text-purple-700 dark:text-purple-300 font-medium">
-                  امتیاز شما: {game.userScore}
-                  {game.userPosition && ` • رتبه ${game.userPosition}`}
-                </div>
-              </div>
-            )}
-
-            {!hasGameData && gameStatus.status === GameStatus.UPCOMING && (
-              <div className="mt-2 text-sm text-telegram-hint">
-                جزئیات بازی پس از شروع نمایش داده می‌شود
-              </div>
-            )}
-
-            {isFinished && hasGameData && (
-              <div className="mt-2 space-y-1">
-                <div className="text-sm">
-                  <div className="flex items-center gap-2">
-                    <Music className="w-4 h-4 text-green-600" />
-                    <span className="font-medium text-green-700 dark:text-green-300">
-                      {game.songName}
-                    </span>
-                    <span className="text-telegram-hint">توسط</span>
-                    <span className="font-medium text-blue-700 dark:text-blue-300">
-                      {game.singerName}
-                    </span>
-                  </div>
-                </div>
+              <div className="mt-2 text-sm text-purple-700 dark:text-purple-300 font-medium">
+                امتیاز شما: {game.userScore}
               </div>
             )}
           </div>
@@ -320,45 +248,15 @@ const GamesListPage = () => {
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 text-sm text-telegram-hint">
-            {gameStatus.isActive && hasGameData && (
-              <>
-                {game.textHint && (
-                  <div className="flex items-center gap-1">
-                    <span className="text-yellow-600">💡</span>
-                    <span>راهنمایی متنی</span>
-                  </div>
-                )}
-                {game.imageUrl && (
-                  <div className="flex items-center gap-1">
-                    <span className="text-orange-600">🖼️</span>
-                    <span>راهنمایی تصویری</span>
-                  </div>
-                )}
-              </>
-            )}
-
-            {gameStatus.status === GameStatus.UPCOMING &&
-              !game.isCompletedByUser && (
-                <div className="text-blue-600">
-                  {formatDuration(gameStatus.timeUntilStart)} تا شروع
-                </div>
-              )}
-          </div>
-
-          <button
-            onClick={() => handleGameSelect(game, gameStatus)}
-            className={`
-              flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all
-              ${buttonConfig.className}
-              ${!buttonConfig.canClick ? "cursor-not-allowed" : ""}
-            `}
-          >
-            {buttonConfig.icon}
-            {buttonConfig.text}
-          </button>
-        </div>
+        <button
+          onClick={() => handleGameSelect(game, gameStatus)}
+          className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+            buttonConfig.className
+          } ${!buttonConfig.canClick ? "cursor-not-allowed opacity-70" : ""}`}
+        >
+          {buttonConfig.icon}
+          {buttonConfig.text}
+        </button>
       </div>
     );
   };

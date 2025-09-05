@@ -128,14 +128,19 @@ const GamePage: React.FC<GamePageProps> = ({ params }) => {
   };
 
   const handleGuessLetter = async (letter: string) => {
-    if (!currentSession || !currentGame || isLoading || gameState !== "playing")
+    if (
+      !currentSession?.userId ||
+      !currentGame ||
+      isLoading ||
+      gameState !== "playing"
+    )
       return;
 
     setIsLoading(true);
     try {
       const { session, isCorrect } = await guessLetter(
         currentGame.id,
-        currentSession.id,
+        currentSession.userId,
         letter
       );
 
@@ -154,14 +159,19 @@ const GamePage: React.FC<GamePageProps> = ({ params }) => {
   };
 
   const handleUseTextHint = async () => {
-    if (!currentSession || !currentGame || isLoading || gameState !== "playing")
+    if (
+      !currentSession?.userId ||
+      !currentGame ||
+      isLoading ||
+      gameState !== "playing"
+    )
       return;
 
     setIsLoading(true);
     try {
       const { session, textHint } = await getTextHint(
         currentGame.id,
-        currentSession.id
+        currentSession.userId
       );
 
       setCurrentSession(session);
@@ -180,14 +190,19 @@ const GamePage: React.FC<GamePageProps> = ({ params }) => {
   };
 
   const handleUseImageHint = async () => {
-    if (!currentSession || !currentGame || isLoading || gameState !== "playing")
+    if (
+      !currentSession?.userId ||
+      !currentGame ||
+      isLoading ||
+      gameState !== "playing"
+    )
       return;
 
     setIsLoading(true);
     try {
       const { session, imageUrl } = await getImageHint(
         currentGame.id,
-        currentSession.id
+        currentSession.userId
       );
 
       setCurrentSession(session);

@@ -24,9 +24,11 @@ const sanitizeGameForPublic = (game: Game) => {
   };
 };
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const redis = await getRedisClient();
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
 
     const gameIds = await redis.sMembers("games:ids");
 
@@ -42,23 +44,53 @@ export async function GET() {
       .filter((data): data is string => data !== null)
       .map((data) => JSON.parse(data));
 
+    games.sort(
+      (a, b) =>
+        new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+    );
+
+    if (userId) {
+      const userSessionKeys = games.map(
+        (game) => `session:${game.id}:${userId}`
+      );
+
+      let augmentedGames = [];
+
+      if (userSessionKeys.length > 0) {
+        const userSessionsData = await redis.mGet(userSessionKeys);
+
+        augmentedGames = games.map((game, index) => {
+          const sessionData = userSessionsData[index];
+          if (sessionData) {
+            const session: GameSession = JSON.parse(sessionData);
+            return {
+              ...game,
+              isCompletedByUser: session.isCompleted,
+              userScore: session.score,
+            };
+          }
+          return game;
+        });
+      } else {
+        augmentedGames = games;
+      }
+
+      const processedGames = augmentedGames.map((game) => {
+        const endTime = new Date(game.endTime);
+        const isFinished = new Date() > endTime;
+
+        return isFinished ? game : sanitizeGameForPublic(game);
+      });
+
+      return NextResponse.json({ success: true, games: processedGames });
+    }
+
     const now = new Date();
 
     const processedGames = games.map((game) => {
       const endTime = new Date(game.endTime);
       const isFinished = now > endTime;
-
-      if (isFinished) {
-        return game;
-      } else {
-        return sanitizeGameForPublic(game);
-      }
-    });
-
-    processedGames.sort((a, b) => {
-      const aStart = new Date(a.startTime);
-      const bStart = new Date(b.startTime);
-      return bStart.getTime() - aStart.getTime();
+      return isFinished ? game : sanitizeGameForPublic(game);
     });
 
     return NextResponse.json({ success: true, games: processedGames });

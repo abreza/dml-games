@@ -1,5 +1,4 @@
 import {
-  GameListResponse,
   GameStartResponse,
   GameActionResponse,
   LeaderboardResponse,
@@ -8,6 +7,24 @@ import {
   GameActionRequest,
 } from "../types/api";
 import { Game, GameSession } from "../types/game";
+
+interface GameListResponse {
+  success: boolean;
+  games: Game[];
+  error?: string;
+}
+
+export const fetchGames = async (userId?: number): Promise<Game[]> => {
+  const url = userId ? `/api/games?userId=${userId}` : "/api/games";
+  const response = await fetch(url);
+  const data: GameListResponse = await response.json();
+
+  if (!data.success) {
+    throw new Error(data.error || "Failed to fetch games");
+  }
+
+  return data.games || [];
+};
 
 const apiCall = async <T>(url: string, options?: RequestInit): Promise<T> => {
   const response = await fetch(url, {
@@ -68,7 +85,7 @@ export const startGame = async (
 
 export const guessLetter = async (
   gameId: string,
-  sessionId: string,
+  userId: number,
   letter: string
 ): Promise<{ session: GameSession; isCorrect?: boolean }> => {
   const request: GameActionRequest = {
@@ -77,7 +94,7 @@ export const guessLetter = async (
   };
 
   const data = await apiCall<GameActionResponse>(
-    `/api/games/${gameId}/session/${sessionId}`,
+    `/api/games/${gameId}/session/${userId}`,
     {
       method: "PUT",
       body: JSON.stringify(request),
@@ -92,14 +109,14 @@ export const guessLetter = async (
 
 export const getTextHint = async (
   gameId: string,
-  sessionId: string
+  userId: number
 ): Promise<{ session: GameSession; textHint: string }> => {
   const request: GameActionRequest = {
     action: "use_text_hint",
   };
 
   const data = await apiCall<GameActionResponse>(
-    `/api/games/${gameId}/session/${sessionId}`,
+    `/api/games/${gameId}/session/${userId}`,
     {
       method: "PUT",
       body: JSON.stringify(request),
@@ -114,14 +131,14 @@ export const getTextHint = async (
 
 export const getImageHint = async (
   gameId: string,
-  sessionId: string
+  userId: number
 ): Promise<{ session: GameSession; imageUrl: string }> => {
   const request: GameActionRequest = {
     action: "use_image_hint",
   };
 
   const data = await apiCall<GameActionResponse>(
-    `/api/games/${gameId}/session/${sessionId}`,
+    `/api/games/${gameId}/session/${userId}`,
     {
       method: "PUT",
       body: JSON.stringify(request),
