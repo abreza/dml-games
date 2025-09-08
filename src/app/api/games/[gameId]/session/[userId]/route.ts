@@ -102,9 +102,6 @@ export async function PUT(
           updatedSession.wrongLetters.push(normalizedLetter);
           updatedSession.score = Math.max(0, updatedSession.score - 20);
         }
-      } else {
-        updatedSession.score +=
-          10 * (songIndices.length + singerIndices.length);
       }
 
       const songCompletionCheck = songName
@@ -131,11 +128,14 @@ export async function PUT(
       if (updatedSession.isSongGuessed && updatedSession.isSingerGuessed) {
         updatedSession.isCompleted = true;
         updatedSession.completedAt = new Date();
-        const timeRemaining = Math.max(
-          0,
-          Math.floor((endTime.getTime() - now.getTime()) / 1000)
+
+        const sessionStartTime = new Date(session.startedAt);
+        const durationInSeconds = Math.floor(
+          (updatedSession.completedAt.getTime() - sessionStartTime.getTime()) /
+            1000
         );
-        updatedSession.score += timeRemaining;
+
+        updatedSession.score += Math.max(0, 600 - durationInSeconds);
       }
       responseData.isCorrect = isCorrectGuess;
     } else if (action === "use_text_hint") {
