@@ -318,7 +318,7 @@ const GamesListPage = () => {
       <div className="space-y-4">
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            🎵 بازی‌های حدس آهنگ
+            🎵 حدس آهنگ
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             بازی مورد نظر خود را انتخاب کنید

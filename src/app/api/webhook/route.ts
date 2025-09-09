@@ -43,6 +43,18 @@ interface TelegramUpdate {
     data?: string;
     game_short_name?: string;
   };
+
+  inline_query?: {
+    id: string;
+    from: {
+      id: number;
+      first_name: string;
+      last_name?: string;
+      username?: string;
+    };
+    query: string;
+    offset: string;
+  };
 }
 
 async function sendMessage(chatId: number, text: string, replyMarkup?: any) {
@@ -112,10 +124,44 @@ async function answerCallbackQuery(
   }
 }
 
+async function answerInlineQuery(inlineQueryId: string, results: any[]) {
+  try {
+    const response = await fetch(`${TELEGRAM_API}/answerInlineQuery`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        inline_query_id: inlineQueryId,
+        results: results,
+        cache_time: 10,
+      }),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error("Error answering inline query:", error);
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: TelegramUpdate = await request.json();
     console.log("Received webhook:", JSON.stringify(body, null, 2));
+
+    if (body.inline_query) {
+      const inlineQuery = body.inline_query;
+      const results = [
+        {
+          type: "game",
+          id: "1",
+          game_short_name: "guess_tone",
+        },
+      ];
+      await answerInlineQuery(inlineQuery.id, results);
+      console.log("Answered inline query with game result.");
+      return NextResponse.json({ ok: true });
+    }
 
     if (body.callback_query) {
       const callbackQuery = body.callback_query;
@@ -186,6 +232,12 @@ export async function POST(request: NextRequest) {
               {
                 text: "🎮 نمایش لیست بازی‌ها",
                 web_app: { url: WEBHOOK_URL! },
+              },
+            ],
+            [
+              {
+                text: "📢 اشتراک‌گذاری بازی",
+                switch_inline_query: "",
               },
             ],
           ],

@@ -66,7 +66,7 @@ async function setupBot() {
     console.log("🔗 Setting webhook...");
     const webhookResult = await makeRequest(`${TELEGRAM_API}/setWebhook`, {
       url: `${WEBHOOK_URL}/api/webhook`,
-      allowed_updates: ["message", "callback_query"],
+      allowed_updates: ["message", "callback_query", "inline_query"],
       drop_pending_updates: true,
     });
 
@@ -110,21 +110,24 @@ async function setupBot() {
       console.log("⚠️ Warning: Could not set bot description.");
       console.log(`   Error: ${descriptionResult.description}\n`);
     }
-    
+
     console.log("⚙️ Setting main menu button...");
-    const menuButtonResult = await makeRequest(`${TELEGRAM_API}/setChatMenuButton`, {
-      menu_button: {
-        type: 'web_app',
-        text: 'لیست بازی‌ها',
-        web_app: { url: WEBHOOK_URL }
+    const menuButtonResult = await makeRequest(
+      `${TELEGRAM_API}/setChatMenuButton`,
+      {
+        menu_button: {
+          type: "web_app",
+          text: "لیست بازی‌ها",
+          web_app: { url: WEBHOOK_URL },
+        },
       }
-    });
+    );
 
     if (menuButtonResult.ok) {
-        console.log("✅ Main menu button set to open the Web App.\n");
+      console.log("✅ Main menu button set to open the Web App.\n");
     } else {
-        console.log("⚠️ Warning: Could not set the main menu button.");
-        console.log(`   Error: ${menuButtonResult.description}\n`);
+      console.log("⚠️ Warning: Could not set the main menu button.");
+      console.log(`   Error: ${menuButtonResult.description}\n`);
     }
 
     console.log("🔍 Checking webhook status...");
