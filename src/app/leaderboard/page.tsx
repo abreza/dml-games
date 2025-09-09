@@ -295,10 +295,10 @@ const GlobalLeaderboardPage = () => {
                   </div>
                   <div className="text-left">
                     <div className="text-lg font-bold text-gray-900 dark:text-white">
-                      {player.averageScore.toLocaleString("fa-IR")}
+                      {player.totalScore.toLocaleString("fa-IR")}
                     </div>
                     <div className="text-xs text-gray-600 dark:text-gray-400">
-                      میانگین امتیاز
+                      کل امتیاز
                     </div>
                   </div>
                 </div>
@@ -322,10 +322,10 @@ const GlobalLeaderboardPage = () => {
                   </div>
                   <div className="text-center p-2 bg-white/50 dark:bg-gray-800/50 rounded border border-white/30 dark:border-gray-700/30">
                     <div className="font-bold text-purple-600 dark:text-purple-400">
-                      {player.totalScore.toLocaleString("fa-IR")}
+                      {player.averageScore.toLocaleString("fa-IR")}
                     </div>
                     <div className="text-gray-600 dark:text-gray-400">
-                      کل امتیاز
+                      میانگین امتیاز
                     </div>
                   </div>
                 </div>
