@@ -32,7 +32,7 @@ export const LeaderboardItem: React.FC<LeaderboardItemProps> = ({
       case 2:
         return "bg-orange-600 text-white";
       default:
-        return "bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200";
+        return "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200";
     }
   };
 
@@ -40,9 +40,11 @@ export const LeaderboardItem: React.FC<LeaderboardItemProps> = ({
     if (!showStatus) return null;
 
     if (player.isCompleted) {
-      return <CheckCircle className="w-4 h-4 text-green-500" />;
+      return (
+        <CheckCircle className="w-4 h-4 text-green-500 dark:text-green-400" />
+      );
     } else {
-      return <Play className="w-4 h-4 text-blue-500" />;
+      return <Play className="w-4 h-4 text-blue-500 dark:text-blue-400" />;
     }
   };
 
@@ -56,10 +58,10 @@ export const LeaderboardItem: React.FC<LeaderboardItemProps> = ({
 
   return (
     <div
-      className={`flex items-center justify-between p-3 rounded-lg transition-all ${
+      className={`flex items-center justify-between p-3 rounded-lg transition-all border ${
         isCurrentUser
-          ? "bg-blue-500/20 border border-blue-500/30"
-          : "bg-telegram-bg/30 dark:bg-gray-700/50"
+          ? "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700"
+          : "bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600"
       }`}
     >
       <div className="flex items-center gap-3">
@@ -72,14 +74,16 @@ export const LeaderboardItem: React.FC<LeaderboardItemProps> = ({
         </span>
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-telegram-text">
+            <span className="font-medium text-gray-900 dark:text-white">
               {player.userName}
-              {isCurrentUser && " (شما)"}
+              {isCurrentUser && (
+                <span className="text-blue-600 dark:text-blue-400"> (شما)</span>
+              )}
             </span>
             {getStatusIcon()}
           </div>
           {showStatus && player.isCompleted && player.completedAt && (
-            <span className="text-xs text-telegram-hint">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
               تکمیل شده:{" "}
               {new Date(player.completedAt).toLocaleTimeString("fa-IR")}
             </span>
