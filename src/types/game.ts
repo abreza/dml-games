@@ -62,6 +62,7 @@ export const PERSIAN_LETTERS = [
   "و",
   "ه",
   "ی",
+  "‌"
 ];
 
 export const GameStatus = {

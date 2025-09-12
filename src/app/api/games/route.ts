@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Game, GameSession } from "@/types/game";
+import { Game, GameSession, PERSIAN_LETTERS } from "@/types/game";
 import { getRedisClient } from "@/lib/redis";
 
 const sanitizeGameForPublic = (game: Game) => {
@@ -158,8 +158,17 @@ export async function POST(request: NextRequest) {
 
     const sessionId = `${gameId}_${userId}_${Date.now()}`;
 
-    const guessedSongLetters = new Array(game.songName.length).fill(false);
-    const guessedSingerLetters = new Array(game.singerName.length).fill(false);
+    const normalizeText = (text: string) =>
+      text.trim().replace(/\s+/g, " ").replace(/ي/g, "ی").replace(/ك/g, "ک");
+    const normalizedSongName = normalizeText(game.songName);
+    const normalizedSingerName = normalizeText(game.singerName);
+
+    const guessedSongLetters = normalizedSongName
+      .split("")
+      .map((char) => !PERSIAN_LETTERS.includes(char) && char !== " ");
+    const guessedSingerLetters = normalizedSingerName
+      .split("")
+      .map((char) => !PERSIAN_LETTERS.includes(char) && char !== " ");
 
     const newSession: GameSession = {
       id: sessionId,

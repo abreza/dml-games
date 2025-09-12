@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Eye, FileText, Clock, Trophy } from "lucide-react";
 import { Game, GameSession, PERSIAN_LETTERS } from "../types/game";
 
@@ -37,27 +37,39 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     const normalizedWord = normalizeText(word);
 
     return (
-      <div className="flex flex-wrap justify-center gap-1 mb-4">
-        {normalizedWord.split("").map((char, index) => (
-          <div
-            key={index}
-            className={`
-              w-10 h-12 border-2 border-gray-300 rounded-md flex items-center justify-center text-lg font-bold
-              ${char === " " ? "border-transparent" : ""}
-              ${
-                guessedLetters[index] || isGuessed
-                  ? "bg-green-100 text-green-800 border-green-300"
-                  : "bg-white text-gray-400"
-              }
-            `}
-          >
-            {char === " "
-              ? ""
-              : guessedLetters[index] || isGuessed
-              ? char
-              : "_"}
-          </div>
-        ))}
+      <div className="flex flex-wrap justify-center items-center gap-1 mb-4">
+        {normalizedWord.split("").map((char, index) => {
+          const isGuessable = PERSIAN_LETTERS.includes(char);
+
+          if (!isGuessable) {
+            return <></>;
+          }
+
+          if (char === " ") {
+            return (
+              <div
+                key={index}
+                className="h-12 flex items-center justify-center text-xl font-bold text-telegram-text w-4"
+              ></div>
+            );
+          }
+
+          return (
+            <div
+              key={index}
+              className={`
+                w-10 h-12 border-2 rounded-md flex items-center justify-center text-lg font-bold
+                ${
+                  guessedLetters[index] || isGuessed
+                    ? "bg-green-100 text-green-800 border-green-300"
+                    : "bg-white text-gray-400 border-gray-300"
+                }
+              `}
+            >
+              {guessedLetters[index] || isGuessed ? char : "_"}
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -241,6 +253,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             {PERSIAN_LETTERS.map((letter) => {
               const isUsed = isLetterUsed(letter);
               const isCorrect = isLetterCorrect(letter);
+              const isZwnj = letter === "‌";
 
               return (
                 <button
@@ -248,7 +261,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                   onClick={() => handleLetterClick(letter)}
                   disabled={isUsed || isLoading || session.isCompleted}
                   className={`
-                    aspect-square rounded-lg border-2 font-bold text-lg transition-all
+                    aspect-square rounded-lg border-2 font-bold transition-all flex items-center justify-center leading-none
+                    ${isZwnj ? "text-xs p-1" : "text-lg"}
                     ${
                       isUsed
                         ? isCorrect &&
@@ -266,7 +280,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                     }
                   `}
                 >
-                  {letter}
+                  {isZwnj ? "نیم‌فاصله" : letter}
                 </button>
               );
             })}

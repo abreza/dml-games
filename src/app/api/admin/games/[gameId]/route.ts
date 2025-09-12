@@ -11,6 +11,9 @@ export async function PUT(request: NextRequest, { params }: any) {
     const { songName, singerName, startTime, endTime, textHint, imageUrl } =
       body;
 
+    const normalizeText = (text: string) =>
+      text.trim().replace(/\s+/g, " ").replace(/ي/g, "ی").replace(/ك/g, "ک");
+
     if (!songName?.trim() || !singerName?.trim()) {
       return NextResponse.json(
         { error: "نام بازی، نام آهنگ و نام خواننده الزامی هستند" },
@@ -45,8 +48,8 @@ export async function PUT(request: NextRequest, { params }: any) {
 
     const updatedGame: Game = {
       ...existingGame,
-      songName: songName.trim(),
-      singerName: singerName.trim(),
+      songName: normalizeText(songName),
+      singerName: normalizeText(singerName),
       startTime: start,
       endTime: end,
       textHint: textHint?.trim() || undefined,
