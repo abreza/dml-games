@@ -7,6 +7,7 @@ import { Game, GameStatus } from "../types/game";
 import { fetchGames } from "../services/gameService";
 import { useTelegramWebApp } from "../hooks/useTelegramWebApp";
 import { preserveQueryParams } from "../utils/navigationUtils";
+import { formatDuration, getGameStatus } from "../utils/gameUtils";
 
 interface GameWithCompletion extends Game {
   isCompletedByUser?: boolean;
@@ -44,71 +45,6 @@ const GamesListPage = () => {
     const interval = setInterval(fetchActiveGames, 30000);
     return () => clearInterval(interval);
   }, [user, fetchActiveGames]);
-
-  const getGameStatus = (game: Game) => {
-    const now = new Date();
-    const start = new Date(game.startTime);
-    const end = new Date(game.endTime);
-
-    if (now < start) {
-      const timeUntilStart = Math.floor(
-        (start.getTime() - now.getTime()) / 1000
-      );
-      return {
-        status: GameStatus.UPCOMING,
-        label: "آغاز نشده",
-        color:
-          "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700",
-        timeText: `شروع: ${formatTime(start)}`,
-        timeUntilStart,
-        isActive: false,
-      };
-    }
-
-    if (now >= start && now <= end) {
-      const timeLeft = Math.floor((end.getTime() - now.getTime()) / 1000);
-      return {
-        status: GameStatus.ACTIVE,
-        label: "در حال اجرا",
-        color:
-          "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700",
-        timeText: `باقی‌مانده: ${formatDuration(timeLeft)}`,
-        timeUntilStart: 0,
-        isActive: true,
-      };
-    }
-
-    return {
-      status: GameStatus.ENDED,
-      label: "تمام شده",
-      color:
-        "bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600",
-      timeText: `پایان: ${formatTime(end)}`,
-      timeUntilStart: 0,
-      isActive: false,
-    };
-  };
-
-  const formatTime = (date: Date | string) => {
-    return new Date(date).toLocaleDateString("fa-IR", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const formatDuration = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    if (hours > 0) {
-      return `${hours} ساعت و ${minutes} دقیقه`;
-    }
-    if (minutes > 0) {
-      return `${minutes} دقیقه`;
-    }
-    return `کمتر از یک دقیقه`;
-  };
 
   const getButtonConfig = (game: GameWithCompletion, gameStatus: any) => {
     if (gameStatus.status === GameStatus.ENDED) {

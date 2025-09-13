@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Game, GameSession, PERSIAN_LETTERS } from "@/types/game";
+import {
+  Game,
+  GameSession,
+  PERSIAN_LETTERS,
+  ENGLISH_LETTERS,
+} from "@/types/game";
 import { getRedisClient } from "@/lib/redis";
+import { sanitizeText } from "@/utils/gameUtils";
 
 const sanitizeGameForPublic = (game: Game) => {
   const now = new Date();
@@ -158,17 +164,20 @@ export async function POST(request: NextRequest) {
 
     const sessionId = `${gameId}_${userId}_${Date.now()}`;
 
-    const normalizeText = (text: string) =>
-      text.trim().replace(/\s+/g, " ").replace(/ي/g, "ی").replace(/ك/g, "ک");
-    const normalizedSongName = normalizeText(game.songName);
-    const normalizedSingerName = normalizeText(game.singerName);
+    const normalizedSongName = sanitizeText(game.songName);
+    const normalizedSingerName = sanitizeText(game.singerName);
 
-    const guessedSongLetters = normalizedSongName
-      .split("")
-      .map((char) => !PERSIAN_LETTERS.includes(char) && char !== " ");
-    const guessedSingerLetters = normalizedSingerName
-      .split("")
-      .map((char) => !PERSIAN_LETTERS.includes(char) && char !== " ");
+    const validLetters =
+      game.language === "en" ? ENGLISH_LETTERS : PERSIAN_LETTERS;
+
+    const guessedSongLetters = normalizedSongName.split("").map((char) => {
+      const checkChar = game.language === "en" ? char.toUpperCase() : char;
+      return !validLetters.includes(checkChar) && char !== " ";
+    });
+    const guessedSingerLetters = normalizedSingerName.split("").map((char) => {
+      const checkChar = game.language === "en" ? char.toUpperCase() : char;
+      return !validLetters.includes(checkChar) && char !== " ";
+    });
 
     const newSession: GameSession = {
       id: sessionId,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Game } from "@/types/game";
 import { getRedisClient } from "@/lib/redis";
+import { sanitizeText } from "@/utils/gameUtils";
 
 export async function GET() {
   try {
@@ -39,11 +40,15 @@ export async function POST(request: NextRequest) {
   try {
     const redis = await getRedisClient();
     const body = await request.json();
-    const { songName, singerName, startTime, endTime, textHint, imageUrl } =
-      body;
-
-    const normalizeText = (text: string) =>
-      text.trim().replace(/\s+/g, " ").replace(/ي/g, "ی").replace(/ك/g, "ک");
+    const {
+      songName,
+      singerName,
+      startTime,
+      endTime,
+      textHint,
+      imageUrl,
+      language = "fa",
+    } = body;
 
     if (!songName?.trim() || !singerName?.trim()) {
       return NextResponse.json(
@@ -74,11 +79,12 @@ export async function POST(request: NextRequest) {
 
     const newGame: Game = {
       id: gameId,
-      songName: normalizeText(songName),
-      singerName: normalizeText(singerName),
+      songName: sanitizeText(songName),
+      singerName: sanitizeText(singerName),
       startTime: new Date(startTime),
       endTime: new Date(endTime),
-      textHint: textHint?.trim() || undefined,
+      language,
+      textHint: sanitizeText(textHint) || undefined,
       imageUrl: imageUrl?.trim() || undefined,
       createdAt: new Date(),
       updatedAt: new Date(),

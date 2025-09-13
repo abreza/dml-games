@@ -74,6 +74,7 @@ export const useGames = (isAuthenticated: boolean) => {
       endTime: endTime,
       textHint: "",
       imageUrl: "",
+      language: "fa",
     };
   };
 

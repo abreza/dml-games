@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Game, GameSession, PERSIAN_LETTERS } from "@/types/game";
+import {
+  Game,
+  GameSession,
+  PERSIAN_LETTERS,
+  ENGLISH_LETTERS,
+} from "@/types/game";
 import { getRedisClient } from "@/lib/redis";
+import { normalizeForComparison } from "@/utils/gameUtils";
 
 export async function PUT(
   request: NextRequest,
@@ -59,22 +65,27 @@ export async function PUT(
     const responseData: any = { success: true };
 
     if (action === "guess_letter") {
-      if (!letter || !PERSIAN_LETTERS.includes(letter)) {
-        return NextResponse.json({ error: "حرف نامعتبر" }, { status: 400 });
+      const validLetters =
+        game.language === "en" ? ENGLISH_LETTERS : PERSIAN_LETTERS;
+
+      if (
+        !letter ||
+        !validLetters.includes(
+          game.language === "en" ? letter.toUpperCase() : letter
+        )
+      ) {
+        return NextResponse.json({ error: "Invalid letter" }, { status: 400 });
       }
 
-      const normalizedLetter = letter.replace(/ي/g, "ی").replace(/ك/g, "ک");
-
-      const normalizeText = (text: string) =>
-        text.trim().replace(/\s+/g, " ").replace(/ي/g, "ی").replace(/ك/g, "ک");
-      const songName = normalizeText(game.songName);
-      const singerName = normalizeText(game.singerName);
+      const finalLetter = normalizeForComparison(letter, game.language);
+      const songName = normalizeForComparison(game.songName, game.language);
+      const singerName = normalizeForComparison(game.singerName, game.language);
 
       const songIndices = Array.from(
-        songName.matchAll(new RegExp(normalizedLetter, "g"))
+        songName.matchAll(new RegExp(finalLetter, "g"))
       ).map((a) => a.index!);
       const singerIndices = Array.from(
-        singerName.matchAll(new RegExp(normalizedLetter, "g"))
+        singerName.matchAll(new RegExp(finalLetter, "g"))
       ).map((a) => a.index!);
 
       let isCorrectGuess = false;
@@ -98,8 +109,8 @@ export async function PUT(
       }
 
       if (!isCorrectGuess) {
-        if (!updatedSession.wrongLetters.includes(normalizedLetter)) {
-          updatedSession.wrongLetters.push(normalizedLetter);
+        if (!updatedSession.wrongLetters.includes(finalLetter)) {
+          updatedSession.wrongLetters.push(finalLetter);
           updatedSession.score = Math.max(0, updatedSession.score - 20);
         }
       }

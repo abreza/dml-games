@@ -320,7 +320,7 @@ const GameResultsPage: React.FC<GameResultsPageProps> = ({ params }) => {
               <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-3">
                 عملکرد شما
               </h3>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
                 <div className="flex justify-between">
                   <span>حروف اشتباه:</span>
                   <span className="font-medium text-red-600">

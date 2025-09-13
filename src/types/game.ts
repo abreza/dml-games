@@ -4,6 +4,7 @@ export interface Game {
   singerName: string;
   startTime: Date;
   endTime: Date;
+  language: "fa" | "en";
   textHint?: string;
   imageUrl?: string;
   createdAt: Date;
@@ -27,6 +28,35 @@ export interface GameSession {
   isSingerGuessed: boolean;
   isCompleted: boolean;
 }
+
+export const ENGLISH_LETTERS = [
+  "A",
+  "B",
+  "C",
+  "D",
+  "E",
+  "F",
+  "G",
+  "H",
+  "I",
+  "J",
+  "K",
+  "L",
+  "M",
+  "N",
+  "O",
+  "P",
+  "Q",
+  "R",
+  "S",
+  "T",
+  "U",
+  "V",
+  "W",
+  "X",
+  "Y",
+  "Z",
+];
 
 export const PERSIAN_LETTERS = [
   "آ",
@@ -62,7 +92,7 @@ export const PERSIAN_LETTERS = [
   "و",
   "ه",
   "ی",
-  "‌"
+  "‌",
 ];
 
 export const GameStatus = {

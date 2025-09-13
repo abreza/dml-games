@@ -35,6 +35,7 @@ const GameForm: React.FC<GameFormProps> = ({
         endTime: new Date(editingGame.endTime),
         textHint: editingGame.textHint || "",
         imageUrl: editingGame.imageUrl || "",
+        language: editingGame.language || "fa",
       });
     } else {
       setFormData(defaultFormData);
@@ -109,7 +110,24 @@ const GameForm: React.FC<GameFormProps> = ({
                 />
               </div>
             </div>
-
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                زبان بازی *
+              </label>
+              <select
+                value={formData.language}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    language: e.target.value as "fa" | "en",
+                  })
+                }
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              >
+                <option value="fa">فارسی (fa)</option>
+                <option value="en">انگلیسی (en)</option>
+              </select>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

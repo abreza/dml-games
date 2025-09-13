@@ -1,7 +1,9 @@
 import { Game } from "../types/game";
 
-export interface GameForm extends Omit<Game, "id" | "createdAt" | "updatedAt"> {
+export interface GameForm
+  extends Omit<Game, "id" | "createdAt" | "updatedAt" | "language"> {
   id?: string;
+  language: "fa" | "en";
 }
 
 export const adminApi = {

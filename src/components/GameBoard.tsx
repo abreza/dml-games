@@ -1,6 +1,12 @@
 import React from "react";
 import { Eye, FileText, Clock, Trophy } from "lucide-react";
-import { Game, GameSession, PERSIAN_LETTERS } from "../types/game";
+import {
+  Game,
+  GameSession,
+  PERSIAN_LETTERS,
+  ENGLISH_LETTERS,
+} from "../types/game";
+import { normalizeForComparison } from "@/utils/gameUtils";
 
 interface GameBoardProps {
   game: Game;
@@ -21,30 +27,19 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   onUseImageHint,
   isLoading,
 }) => {
-  const normalizeText = (text: string): string => {
-    return text
-      .trim()
-      .replace(/\s+/g, " ")
-      .replace(/ي/g, "ی")
-      .replace(/ك/g, "ک");
-  };
-
   const renderWord = (
     word: string,
     guessedLetters: boolean[],
     isGuessed: boolean
   ) => {
-    const normalizedWord = normalizeText(word);
+    const normalizedWord = normalizeForComparison(word, game.language);
 
     return (
-      <div className="flex flex-wrap justify-center items-center gap-1 mb-4">
+      <div
+        className={`flex flex-wrap justify-center items-center gap-1 mb-4`}
+        dir={game.language === "en" ? "ltr" : "rtl"}
+      >
         {normalizedWord.split("").map((char, index) => {
-          const isGuessable = PERSIAN_LETTERS.includes(char);
-
-          if (!isGuessable) {
-            return <></>;
-          }
-
           if (char === " ") {
             return (
               <div
@@ -52,6 +47,14 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                 className="h-12 flex items-center justify-center text-xl font-bold text-telegram-text w-4"
               ></div>
             );
+          }
+          const validLetters =
+            game.language === "en" ? ENGLISH_LETTERS : PERSIAN_LETTERS;
+          const isGuessable = validLetters.includes(
+            game.language === "en" ? char.toUpperCase() : char
+          );
+          if (!isGuessable) {
+            return <></>;
           }
 
           return (
@@ -86,18 +89,16 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   };
 
   const isLetterUsed = (letter: string): boolean => {
-    const normalizedLetter = letter.replace(/ي/g, "ی").replace(/ك/g, "ک");
+    const normalizedLetter = normalizeForComparison(letter, game.language);
 
-    // Check if letter was guessed correctly in song
-    const songName = normalizeText(game.songName);
+    const songName = normalizeForComparison(game.songName, game.language);
     for (let i = 0; i < songName.length; i++) {
       if (songName[i] === normalizedLetter && session.guessedSongLetters[i]) {
         return true;
       }
     }
 
-    // Check if letter was guessed correctly in singer
-    const singerName = normalizeText(game.singerName);
+    const singerName = normalizeForComparison(game.singerName, game.language);
     for (let i = 0; i < singerName.length; i++) {
       if (
         singerName[i] === normalizedLetter &&
@@ -107,14 +108,13 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       }
     }
 
-    // Check if letter is in wrong letters
     return session.wrongLetters.includes(normalizedLetter);
   };
 
   const isLetterCorrect = (letter: string): boolean => {
-    const normalizedLetter = letter.replace(/ي/g, "ی").replace(/ك/g, "ک");
-    const songName = normalizeText(game.songName);
-    const singerName = normalizeText(game.singerName);
+    const normalizedLetter = normalizeForComparison(letter, game.language);
+    const songName = normalizeForComparison(game.songName, game.language);
+    const singerName = normalizeForComparison(game.singerName, game.language);
 
     return (
       songName.includes(normalizedLetter) ||
@@ -246,44 +246,49 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
       {!session.isCompleted && (
         <div className="space-y-3">
-          <h3 className="text-center font-medium text-telegram-text">
-            حروف فارسی
-          </h3>
-          <div className="grid grid-cols-6 gap-2">
-            {PERSIAN_LETTERS.map((letter) => {
-              const isUsed = isLetterUsed(letter);
-              const isCorrect = isLetterCorrect(letter);
-              const isZwnj = letter === "‌";
+          <h3 className="text-center font-medium text-telegram-text">کیبورد</h3>
+          <div
+            className={`grid ${
+              game.language === "en" ? "grid-cols-7" : "grid-cols-6"
+            } gap-2`}
+            dir={game.language === "en" ? "ltr" : "rtl"}
+          >
+            {(game.language === "en" ? ENGLISH_LETTERS : PERSIAN_LETTERS).map(
+              (letter) => {
+                const isUsed = isLetterUsed(letter);
+                const isCorrect = isLetterCorrect(letter);
+                const isZwnj = letter === "‌";
 
-              return (
-                <button
-                  key={letter}
-                  onClick={() => handleLetterClick(letter)}
-                  disabled={isUsed || isLoading || session.isCompleted}
-                  className={`
-                    aspect-square rounded-lg border-2 font-bold transition-all flex items-center justify-center leading-none
-                    ${isZwnj ? "text-xs p-1" : "text-lg"}
-                    ${
-                      isUsed
-                        ? isCorrect &&
-                          !session.wrongLetters.includes(
-                            letter.replace(/ي/g, "ی").replace(/ك/g, "ک")
-                          )
-                          ? "bg-green-100 border-green-300 text-green-800"
-                          : "bg-red-100 border-red-300 text-red-800"
-                        : "bg-white border-gray-300 text-gray-700 hover:bg-blue-50 hover:border-blue-300 active:scale-95"
-                    }
-                    ${
-                      isLoading || session.isCompleted
-                        ? "cursor-not-allowed opacity-50"
-                        : "cursor-pointer"
-                    }
-                  `}
-                >
-                  {isZwnj ? "نیم‌فاصله" : letter}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={letter}
+                    onClick={() => handleLetterClick(letter)}
+                    disabled={isUsed || isLoading || session.isCompleted}
+                    className={`
+                        aspect-square rounded-lg border-2 font-bold transition-all flex items-center justify-center leading-none
+                        ${isZwnj ? "text-xs p-1" : "text-lg"}
+                        ${
+                          isUsed
+                            ? isCorrect &&
+                              !session.wrongLetters.includes(
+                                letter.replace(/ي/g, "ی").replace(/ك/g, "ک")
+                              )
+                              ? "bg-green-100 border-green-300 text-green-800"
+                              : "bg-red-100 border-red-300 text-red-800"
+                            : "bg-white border-gray-300 text-gray-700 hover:bg-blue-50 hover:border-blue-300 active:scale-95"
+                        }
+                        ${
+                          isLoading || session.isCompleted
+                            ? "cursor-not-allowed opacity-50"
+                            : "cursor-pointer"
+                        }
+                    `}
+                  >
+                    {isZwnj ? "نیم‌فاصله" : letter}
+                  </button>
+                );
+              }
+            )}
           </div>
         </div>
       )}
